@@ -140,6 +140,37 @@ TabsLayout.Parent = TabsFrame
 TabsLayout.SortOrder = Enum.SortOrder.LayoutOrder
 TabsLayout.Padding = UDim.new(0, 2)
 
+local DotsButton = Instance.new("TextButton")
+DotsButton.Name = "DotsBtn"
+DotsButton.Parent = TabsFrame
+DotsButton.Size = UDim2.new(1, 0, 0, TabHeight)
+DotsButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+DotsButton.Text = "⋯"
+DotsButton.TextColor3 = Color3.new(1,1,1)
+DotsButton.TextScaled = true
+DotsButton.Font = Enum.Font.SourceSans
+DotsButton.BorderSizePixel = 0
+local DotsCorner = Instance.new("UICorner")
+DotsCorner.CornerRadius = UDim.new(0, 4)
+DotsCorner.Parent = DotsButton
+DotsButton.LayoutOrder = 100
+
+local SettingsMenu = Instance.new("Frame")
+SettingsMenu.Name = "SettingsMenu"
+SettingsMenu.Parent = MainFrame
+SettingsMenu.Size = UDim2.new(1, -TabWidth, 0, 200)
+SettingsMenu.Position = UDim2.new(0, TabWidth, 1, 0)
+SettingsMenu.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+SettingsMenu.BorderSizePixel = 0
+SettingsMenu.Visible = false
+local SettingsCorner = Instance.new("UICorner")
+SettingsCorner.CornerRadius = UDim.new(0, 12)
+SettingsCorner.Parent = SettingsMenu
+local SettingsLayout = Instance.new("UIListLayout")
+SettingsLayout.Parent = SettingsMenu
+SettingsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+SettingsLayout.Padding = UDim.new(0, 5)
+
 local BackgroundFrame = Instance.new("Frame")
 BackgroundFrame.Name = "BackgroundFrame"
 BackgroundFrame.Parent = MainFrame
@@ -180,6 +211,15 @@ local CurrentTab = nil
 local TabButtons = {}
 local OutlineMode = "Full"
 local FirefliesEnabled = false
+
+-- Переменные для Rage
+local RageEnabled = false
+local SilentAimMethod = "RaycastPredict"
+local HitChance = 100
+local MissChance = 0
+local AutoFireMethod = "TapFire"
+local SilentAimMethods = {"RaycastPredict", "RaycastFOV", "RaycastSmooth", "RaycastLegit", "RaycastFlick", "RaycastSnap", "RaycastCurve", "RaycastBullet", "RaycastHeadOnly", "RaycastBodyPrior"}
+local AutoFireMethods = {"TapFire", "HoldFire", "BurstFire", "RapidTap", "SmartBurst"}
 
 local Fireflies = {}
 local function CreateFirefly()
@@ -223,6 +263,192 @@ local function ToggleFireflies()
     end
 end
 
+local function CreateRageContent()
+    for _, child in ipairs(ContentFrame:GetChildren()) do
+        if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("Frame") then
+            child:Destroy()
+        end
+    end
+    
+    local RageToggle = Instance.new("TextButton")
+    RageToggle.Parent = ContentFrame
+    RageToggle.Size = UDim2.new(1, -10, 0, 30)
+    RageToggle.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    RageToggle.Text = "🔫 Rage: Off"
+    RageToggle.TextColor3 = Color3.new(1,1,1)
+    RageToggle.TextScaled = true
+    RageToggle.Font = Enum.Font.SourceSans
+    local RageCorner = Instance.new("UICorner")
+    RageCorner.CornerRadius = UDim.new(0, 4)
+    RageCorner.Parent = RageToggle
+    RageToggle.MouseButton1Click:Connect(function()
+        RageEnabled = not RageEnabled
+        RageToggle.Text = "🔫 Rage: " .. (RageEnabled and "On" or "Off")
+    end)
+end
+
+local function CreateSettingsMenu()
+    for _, child in ipairs(SettingsMenu:GetChildren()) do
+        child:Destroy()
+    end
+    
+    local MethodLabel = Instance.new("TextLabel")
+    MethodLabel.Parent = SettingsMenu
+    MethodLabel.Size = UDim2.new(1, -10, 0, 25)
+    MethodLabel.BackgroundTransparency = 1
+    MethodLabel.Text = "Silent Aim Method:"
+    MethodLabel.TextColor3 = Color3.new(1,1,1)
+    MethodLabel.TextScaled = true
+    MethodLabel.Font = Enum.Font.SourceSans
+    MethodLabel.TextXAlignment = Enum.TextXAlignment.Left
+    
+    local MethodDropdown = Instance.new("TextButton")
+    MethodDropdown.Parent = SettingsMenu
+    MethodDropdown.Size = UDim2.new(1, -10, 0, 30)
+    MethodDropdown.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    MethodDropdown.Text = SilentAimMethod
+    MethodDropdown.TextColor3 = Color3.new(1,1,1)
+    MethodDropdown.TextScaled = true
+    MethodDropdown.Font = Enum.Font.SourceSans
+    local MethodCorner = Instance.new("UICorner")
+    MethodCorner.CornerRadius = UDim.new(0, 4)
+    MethodCorner.Parent = MethodDropdown
+    local currentIndex = 1
+    for i, method in ipairs(SilentAimMethods) do
+        if method == SilentAimMethod then currentIndex = i end
+    end
+    MethodDropdown.MouseButton1Click:Connect(function()
+        currentIndex = currentIndex % #SilentAimMethods + 1
+        SilentAimMethod = SilentAimMethods[currentIndex]
+        MethodDropdown.Text = SilentAimMethod
+    end)
+    
+    local HitLabel = Instance.new("TextLabel")
+    HitLabel.Parent = SettingsMenu
+    HitLabel.Size = UDim2.new(1, -10, 0, 25)
+    HitLabel.BackgroundTransparency = 1
+    HitLabel.Text = "Hit Chance (%): " .. HitChance
+    HitLabel.TextColor3 = Color3.new(1,1,1)
+    HitLabel.TextScaled = true
+    HitLabel.Font = Enum.Font.SourceSans
+    HitLabel.TextXAlignment = Enum.TextXAlignment.Left
+    
+    local HitSlider = Instance.new("TextButton")
+    HitSlider.Parent = SettingsMenu
+    HitSlider.Size = UDim2.new(1, -10, 0, 20)
+    HitSlider.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+    HitSlider.Text = ""
+    local HitSliderCorner = Instance.new("UICorner")
+    HitSliderCorner.CornerRadius = UDim.new(0, 10)
+    HitSliderCorner.Parent = HitSlider
+    local HitFill = Instance.new("Frame")
+    HitFill.Parent = HitSlider
+    HitFill.Size = UDim2.new(HitChance / 100, 0, 1, 0)
+    HitFill.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+    HitFill.BorderSizePixel = 0
+    local HitFillCorner = Instance.new("UICorner")
+    HitFillCorner.CornerRadius = UDim.new(0, 10)
+    HitFillCorner.Parent = HitFill
+    local draggingHit = false
+    HitSlider.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            draggingHit = true
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            draggingHit = false
+        end
+    end)
+    RunService.Heartbeat:Connect(function()
+        if draggingHit then
+            local mousePos = UserInputService:GetMouseLocation()
+            local relativeX = math.clamp((mousePos.X - HitSlider.AbsolutePosition.X) / HitSlider.AbsoluteSize.X, 0, 1)
+            HitChance = math.floor(relativeX * 100)
+            HitLabel.Text = "Hit Chance (%): " .. HitChance
+            HitFill.Size = UDim2.new(HitChance / 100, 0, 1, 0)
+        end
+    end)
+    
+    local MissLabel = Instance.new("TextLabel")
+    MissLabel.Parent = SettingsMenu
+    MissLabel.Size = UDim2.new(1, -10, 0, 25)
+    MissLabel.BackgroundTransparency = 1
+    MissLabel.Text = "Miss Chance (%): " .. MissChance
+    MissLabel.TextColor3 = Color3.new(1,1,1)
+    MissLabel.TextScaled = true
+    MissLabel.Font = Enum.Font.SourceSans
+    MissLabel.TextXAlignment = Enum.TextXAlignment.Left
+    
+    local MissSlider = Instance.new("TextButton")
+    MissSlider.Parent = SettingsMenu
+    MissSlider.Size = UDim2.new(1, -10, 0, 20)
+    MissSlider.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+    MissSlider.Text = ""
+    local MissSliderCorner = Instance.new("UICorner")
+    MissSliderCorner.CornerRadius = UDim.new(0, 10)
+    MissSliderCorner.Parent = MissSlider
+    local MissFill = Instance.new("Frame")
+    MissFill.Parent = MissSlider
+    MissFill.Size = UDim2.new(MissChance / 100, 0, 1, 0)
+    MissFill.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    MissFill.BorderSizePixel = 0
+    local MissFillCorner = Instance.new("UICorner")
+    MissFillCorner.CornerRadius = UDim.new(0, 10)
+    MissFillCorner.Parent = MissFill
+    local draggingMiss = false
+    MissSlider.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            draggingMiss = true
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            draggingMiss = false
+        end
+    end)
+    RunService.Heartbeat:Connect(function()
+        if draggingMiss then
+            local mousePos = UserInputService:GetMouseLocation()
+            local relativeX = math.clamp((mousePos.X - MissSlider.AbsolutePosition.X) / MissSlider.AbsoluteSize.X, 0, 1)
+            MissChance = math.floor(relativeX * 100)
+            MissLabel.Text = "Miss Chance (%): " .. MissChance
+            MissFill.Size = UDim2.new(MissChance / 100, 0, 1, 0)
+        end
+    end)
+    
+    local AutoFireLabel = Instance.new("TextLabel")
+    AutoFireLabel.Parent = SettingsMenu
+    AutoFireLabel.Size = UDim2.new(1, -10, 0, 25)
+    AutoFireLabel.BackgroundTransparency = 1
+    AutoFireLabel.Text = "Auto Fire Method:"
+    AutoFireLabel.TextColor3 = Color3.new(1,1,1)
+    AutoFireLabel.TextScaled = true
+    AutoFireLabel.Font = Enum.Font.SourceSans
+    AutoFireLabel.TextXAlignment = Enum.TextXAlignment.Left
+    
+    local AutoFireDropdown = Instance.new("TextButton")
+    AutoFireDropdown.Parent = SettingsMenu
+    AutoFireDropdown.Size = UDim2.new(1, -10, 0, 30)
+    AutoFireDropdown.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    AutoFireDropdown.Text = AutoFireMethod
+    AutoFireDropdown.TextColor3 = Color3.new(1,1,1)
+    AutoFireDropdown.TextScaled = true
+    AutoFireDropdown.Font = Enum.Font.SourceSans
+    local AutoFireCorner = Instance.new("UICorner")
+    AutoFireCorner.CornerRadius = UDim.new(0, 4)
+    AutoFireCorner.Parent = AutoFireDropdown
+    local currentAutoIndex = 1
+    for i, method in ipairs(AutoFireMethods) do
+        if method == AutoFireMethod then currentAutoIndex = i end
+    end
+    AutoFireDropdown.MouseButton1Click:Connect(function()
+        currentAutoIndex = currentAutoIndex % #AutoFireMethods + 1
+        AutoFireMethod = AutoFireMethods[currentAutoIndex]
+        AutoFireDropdown.Text = AutoFireMethod
+    end)
+end
+
 local function CreateTabContent(tabData)
     for _, child in ipairs(ContentFrame:GetChildren()) do
         if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("Frame") then
@@ -230,7 +456,9 @@ local function CreateTabContent(tabData)
         end
     end
     
-    if tabData.Name == "Settings" then
+    if tabData.Name == "Rage" then
+        CreateRageContent()
+    elseif tabData.Name == "Settings" then
         -- Color Selection Label
         local ColorLabel = Instance.new("TextLabel")
         ColorLabel.Parent = ContentFrame
@@ -278,145 +506,7 @@ local function CreateTabContent(tabData)
                 TopOutline.BackgroundColor3 = colorData.Color
                 TitleLabel.TextColor3 = colorData.Color
             end)
-        end
-        
-        -- Outline Toggle
-        local OutlineToggle = Instance.new("TextButton")
-        OutlineToggle.Parent = ContentFrame
-        OutlineToggle.Size = UDim2.new(1, -10, 0, 30)
-        OutlineToggle.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-        OutlineToggle.Text = "📏 Outline: Full"
-        OutlineToggle.TextColor3 = Color3.new(1,1,1)
-        OutlineToggle.TextScaled = true
-        OutlineToggle.Font = Enum.Font.SourceSans
-        local OutlineCorner = Instance.new("UICorner")
-        OutlineCorner.CornerRadius = UDim.new(0, 4)
-        OutlineCorner.Parent = OutlineToggle
-        OutlineToggle.MouseButton1Click:Connect(function()
-            OutlineMode = OutlineMode == "Full" and "Top" or "Full"
-            OutlineToggle.Text = "📏 Outline: " .. OutlineMode
-            OutlineStroke.Enabled = (OutlineMode == "Full")
-            TopOutline.Visible = (OutlineMode == "Top")
-        end)
-        
-        -- Fireflies Toggle
-        local FireflyToggle = Instance.new("TextButton")
-        FireflyToggle.Parent = ContentFrame
-        FireflyToggle.Size = UDim2.new(1, -10, 0, 30)
-        FireflyToggle.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-        FireflyToggle.Text = "✨ Fireflies: Off"
-        FireflyToggle.TextColor3 = Color3.new(1,1,1)
-        FireflyToggle.TextScaled = true
-        FireflyToggle.Font = Enum.Font.SourceSans
-        local FireflyCorner = Instance.new("UICorner")
-        FireflyCorner.CornerRadius = UDim.new(0, 4)
-        FireflyCorner.Parent = FireflyToggle
-        FireflyToggle.MouseButton1Click:Connect(function()
-            ToggleFireflies()
-            FireflyToggle.Text = "✨ Fireflies: " .. (FirefliesEnabled and "On" or "Off")
-        end)
-    elseif tabData.Name == "Visuals" then
-        ToggleESP()
-    end
-end
-
-local function SwitchTab(tabData)
-    local tabButton = TabsFrame:FindFirstChild(tabData.Name .. "Tab")
-    if tabButton then
-        if CurrentTab then
-            CurrentTab.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-        end
-        tabButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-        CurrentTab = tabButton
-        CreateTabContent(tabData)
-    end
-end
-
-for _, tabData in ipairs(Tabs) do
-    local TabButton = Instance.new("TextButton")
-    TabButton.Name = tabData.Name .. "Tab"
-    TabButton.Parent = TabsFrame
-    TabButton.Size = UDim2.new(1, 0, 0, TabHeight)
-    TabButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    TabButton.Text = tabData.Emoji .. " " .. tabData.Name
-    TabButton.TextColor3 = Color3.new(1,1,1)
-    TabButton.TextScaled = true
-    TabButton.Font = Enum.Font.SourceSans
-    TabButton.BorderSizePixel = 0
-    TabButton.LayoutOrder = tabData.LayoutOrder
-    local TabCorner = Instance.new("UICorner")
-    TabCorner.CornerRadius = UDim.new(0, 4)
-    TabCorner.Parent = TabButton
-    table.insert(TabButtons, {Button = TabButton, Data = tabData})
-    
-    TabButton.MouseButton1Click:Connect(function()
-        SwitchTab(tabData)
-    end)
-end
-
-SettingsButton.MouseButton1Click:Connect(function()
-    local settingsData = {Name = "Settings", Emoji = "⚙️"}
-    SwitchTab(settingsData)
-end)
-
-local firstTabData = Tabs[1]
-SwitchTab(firstTabData)
-
-local dragging = false
-local dragStart = nil
-local startPos = nil
-local dragConnection = nil
-
-local function updateInput(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - dragStart
-        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end
-
-Header.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = MainFrame.Position
-        dragConnection = UserInputService.InputChanged:Connect(updateInput)
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        if dragging then
-            dragging = false
-            if dragConnection then
-                dragConnection:Disconnect()
-                dragConnection = nil
-            end
-        end
-    end
-end)
-
-local function ToggleMenu()
-    MenuOpen = not MenuOpen
-    MainFrame.Visible = MenuOpen
-    TitleLabel.Visible = MenuOpen
-    SettingsButton.Visible = MenuOpen
-    ToggleButton.Text = MenuOpen and "◀" or "▶"
-    if MenuOpen then
-        MainFrame.Size = UDim2.new(0, 0, 0, 0)
-        MainFrame:TweenSize(UDim2.new(0, MenuWidth, 0, MenuHeight), "Out", "Quad", 0.3)
-    end
-end
-
-ToggleButton.MouseButton1Click:Connect(ToggleMenu)
-CloseButton.MouseButton1Click:Connect(ToggleMenu)
-
-ToggleButton.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch then
-        ToggleMenu()
-    end
-end)
-
-local ESPEnabled = false
+  local ESPEnabled = false
 local ESPObjects = {}
 
 local function CreateESP(Player)
@@ -489,4 +579,205 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
-print("Anyx.gg Fixed Scroll & Color Buttons - Tap Blue Triangle to Open")
+-- Логика Silent Aim
+local function GetClosestEnemy()
+    local closest, dist = nil, math.huge
+    for _, Player in ipairs(Players:GetPlayers()) do
+        if Player ~= LocalPlayer and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") and Player.Character.HumanoidRootPart.Health > 0 then
+            local root = Player.Character.HumanoidRootPart
+            local screenPos, onScreen = Camera:WorldToViewportPoint(root.Position)
+            if onScreen then
+                local d = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)).Magnitude
+                if d < dist then
+                    dist = d
+                    closest = root
+                end
+            end
+        end
+    end
+    return closest
+end
+
+local function SilentAim(target)
+    if not target then return end
+    local character = LocalPlayer.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then return end
+    local tool = character:FindFirstChildOfClass("Tool")
+    if not tool then return end
+    
+    local hitChanceRoll = math.random(1, 100)
+    if hitChanceRoll > HitChance or math.random(1, 100) <= MissChance then return end
+    
+    local origin = tool.Handle.Position
+    local direction = (target.Position - origin).Unit * 1000
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    raycastParams.FilterDescendantsInstances = {character}
+    
+    local raycast = workspace:Raycast(origin, direction, raycastParams)
+    if raycast then
+        target = raycast.Instance
+    end
+    
+    local methodHandlers = {
+        RaycastPredict = function()
+            local velocity = target.AssemblyLinearVelocity
+            local predictPos = target.Position + velocity * 0.1
+            return Camera:ScreenPointToRay(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2):Direction:lerp((predictPos - Camera.CFrame.Position).Unit, 0.8)
+        end,
+        RaycastFOV = function()
+            return (target.Position - Camera.CFrame.Position).Unit
+        end,
+        RaycastSmooth = function()
+            local currentDir = Camera.CFrame.LookVector
+            return currentDir:lerp((target.Position - Camera.CFrame.Position).Unit, 0.5)
+        end,
+        RaycastLegit = function()
+            local noise = Vector3.new(math.random(-1,1), math.random(-1,1), math.random(-1,1)).Unit * 0.1
+            return (target.Position + noise - Camera.CFrame.Position).Unit
+        end,
+        RaycastFlick = function()
+            return (target.Position - Camera.CFrame.Position).Unit
+        end,
+        RaycastSnap = function()
+            return (target.Position - Camera.CFrame.Position).Unit
+        end,
+        RaycastCurve = function()
+            local curve = CFrame.new(Camera.CFrame.Position, target.Position)
+            return curve.LookVector
+        end,
+        RaycastBullet = function()
+            local bulletDrop = Vector3.new(0, -0.5, 0)
+            return (target.Position + bulletDrop - Camera.CFrame.Position).Unit
+        end,
+        RaycastHeadOnly = function()
+            local head = target.Parent:FindFirstChild("Head")
+            if head then return (head.Position - Camera.CFrame.Position).Unit end
+            return (target.Position - Camera.CFrame.Position).Unit
+        end,
+        RaycastBodyPrior = function()
+            local parts = {"Head", "Torso", "UpperTorso", "HumanoidRootPart"}
+            for _, partName in ipairs(parts) do
+                local part = target.Parent:FindFirstChild(partName)
+                if part then return (part.Position - Camera.CFrame.Position).Unit end
+            end
+            return (target.Position - Camera.CFrame.Position).Unit
+        end
+    }
+    
+    local aimDir = methodHandlers[SilentAimMethod] and methodHandlers[SilentAimMethod]() or (target.Position - Camera.CFrame.Position).Unit
+    tool.Handle.CFrame = CFrame.lookAt(tool.Handle.Position, tool.Handle.Position + aimDir)
+end
+
+-- Логика Auto Fire для мобильного
+local firing = false
+local fireConnection = nil
+local function StartAutoFire()
+    if fireConnection then fireConnection:Disconnect() end
+    local character = LocalPlayer.Character
+    if not character then return end
+    local tool = character:FindFirstChildOfClass("Tool")
+    if not tool then return end
+    
+    local methodHandlers = {
+        TapFire = function()
+            fireConnection = RunService.Heartbeat:Connect(function()
+                if math.random(1, 100) <= 80 then -- Быстрые тапы
+                    tool:Activate()
+                    wait(0.05)
+                    tool:Deactivate()
+                end
+            end)
+        end,
+        HoldFire = function()
+            fireConnection = RunService.Heartbeat:Connect(function()
+                tool:Activate()
+            end)
+        end,
+        BurstFire = function()
+            local burstCount = 0
+            fireConnection = RunService.Heartbeat:Connect(function()
+                if burstCount < 3 then
+                    tool:Activate()
+                    burstCount = burstCount + 1
+                    wait(0.1)
+                else
+                    tool:Deactivate()
+                    burstCount = 0
+                    wait(1)
+                end
+            end)
+        end,
+        RapidTap = function()
+            fireConnection = RunService.Heartbeat:Connect(function()
+                tool:Activate()
+                wait(0.03)
+                tool:Deactivate()
+            end)
+        end,
+        SmartBurst = function()
+            local burstCount = 0
+            fireConnection = RunService.Heartbeat:Connect(function()
+                local target = GetClosestEnemy()
+                if target and burstCount < 5 then
+                    tool:Activate()
+                    burstCount = burstCount + 1
+                    wait(0.08)
+                else
+                    tool:Deactivate()
+                    burstCount = 0
+                end
+            end)
+        end
+    }
+    
+    methodHandlers[AutoFireMethod]()
+end
+
+local function StopAutoFire()
+    if fireConnection then
+        fireConnection:Disconnect()
+        fireConnection = nil
+    end
+    local character = LocalPlayer.Character
+    if character then
+        local tool = character:FindFirstChildOfClass("Tool")
+        if tool then tool:Deactivate() end
+    end
+end
+
+UserInputService.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch and RageEnabled then
+        local target = GetClosestEnemy()
+        SilentAim(target)
+        if AutoFireMethod ~= "HoldFire" then
+            StartAutoFire()
+        end
+        firing = true
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch and RageEnabled and firing then
+        StopAutoFire()
+        firing = false
+    end
+end)
+
+RunService.Heartbeat:Connect(function()
+    if RageEnabled then
+        local target = GetClosestEnemy()
+        if target then
+            SilentAim(target)
+            if AutoFireMethod == "HoldFire" then
+                StartAutoFire()
+            end
+        else
+            StopAutoFire()
+        end
+    else
+        StopAutoFire()
+    end
+end)
+
+print("Anyx.gg Rage Added - Silent Aim & Mobile Auto Fire Ready")
