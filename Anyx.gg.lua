@@ -3,14 +3,10 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local SoundService = game:GetService("SoundService")
-local DataStoreService = game:GetService("DataStoreService")
-local HttpService = game:GetService("HttpService")
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local Camera = workspace.CurrentCamera
-
-local ConfigDataStore = DataStoreService:GetDataStore("AnyxConfigs")
 
 local MenuOpen = false
 local ScreenGui = Instance.new("ScreenGui")
@@ -227,53 +223,15 @@ local function ToggleFireflies()
     end
 end
 
-local function SaveConfig(configName)
-    local configData = {
-        OutlineMode = OutlineMode,
-        FirefliesEnabled = FirefliesEnabled,
-        OutlineColor = {OutlineStroke.Color.R * 255, OutlineStroke.Color.G * 255, OutlineStroke.Color.B * 255},
-        TitleColor = {TitleLabel.TextColor3.R * 255, TitleLabel.TextColor3.G * 255, TitleLabel.TextColor3.B * 255}
-    }
-    local success, err = pcall(function()
-        ConfigDataStore:SetAsync(LocalPlayer.UserId .. "_" .. configName, HttpService:JSONEncode(configData))
-    end)
-    if success then
-        print("Config saved: " .. configName)
-    else
-        warn("Save error: " .. tostring(err))
-    end
-end
-
-local function LoadConfig(configName)
-    local success, data = pcall(function()
-        return ConfigDataStore:GetAsync(LocalPlayer.UserId .. "_" .. configName)
-    end)
-    if success and data then
-        local configData = HttpService:JSONDecode(data)
-        OutlineMode = configData.OutlineMode or "Full"
-        FirefliesEnabled = configData.FirefliesEnabled or false
-        if configData.OutlineColor then
-            OutlineStroke.Color = Color3.fromRGB(configData.OutlineColor[1], configData.OutlineColor[2], configData.OutlineColor[3])
-            TopOutline.BackgroundColor3 = OutlineStroke.Color
-        end
-        if configData.TitleColor then
-            TitleLabel.TextColor3 = Color3.fromRGB(configData.TitleColor[1], configData.TitleColor[2], configData.TitleColor[3])
-        end
-        ToggleFireflies()
-        print("Config loaded: " .. configName)
-    else
-        warn("Load error or no config: " .. configName)
-    end
-end
-
 local function CreateTabContent(tabData)
     for _, child in ipairs(ContentFrame:GetChildren()) do
-        if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("Frame") or child:IsA("TextBox") then
+        if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("Frame") then
             child:Destroy()
         end
     end
     
     if tabData.Name == "Settings" then
+        -- Color Selection Label
         local ColorLabel = Instance.new("TextLabel")
         ColorLabel.Parent = ContentFrame
         ColorLabel.Size = UDim2.new(1, -10, 0, 30)
@@ -284,6 +242,7 @@ local function CreateTabContent(tabData)
         ColorLabel.Font = Enum.Font.SourceSans
         ColorLabel.TextXAlignment = Enum.TextXAlignment.Left
         
+        -- Color Buttons Row
         local ColorRow = Instance.new("Frame")
         ColorRow.Parent = ContentFrame
         ColorRow.Size = UDim2.new(1, -10, 0, 40)
@@ -321,6 +280,7 @@ local function CreateTabContent(tabData)
             end)
         end
         
+        -- Outline Toggle
         local OutlineToggle = Instance.new("TextButton")
         OutlineToggle.Parent = ContentFrame
         OutlineToggle.Size = UDim2.new(1, -10, 0, 30)
@@ -339,6 +299,7 @@ local function CreateTabContent(tabData)
             TopOutline.Visible = (OutlineMode == "Top")
         end)
         
+        -- Fireflies Toggle
         local FireflyToggle = Instance.new("TextButton")
         FireflyToggle.Parent = ContentFrame
         FireflyToggle.Size = UDim2.new(1, -10, 0, 30)
@@ -353,65 +314,6 @@ local function CreateTabContent(tabData)
         FireflyToggle.MouseButton1Click:Connect(function()
             ToggleFireflies()
             FireflyToggle.Text = "✨ Fireflies: " .. (FirefliesEnabled and "On" or "Off")
-        end)
-    elseif tabData.Name == "Configs" then
-        local ConfigLabel = Instance.new("TextLabel")
-        ConfigLabel.Parent = ContentFrame
-        ConfigLabel.Size = UDim2.new(1, -10, 0, 30)
-        ConfigLabel.BackgroundTransparency = 1
-        ConfigLabel.Text = "📁 Config Name:"
-        ConfigLabel.TextColor3 = Color3.new(1,1,1)
-        ConfigLabel.TextScaled = true
-        ConfigLabel.Font = Enum.Font.SourceSans
-        ConfigLabel.TextXAlignment = Enum.TextXAlignment.Left
-        
-        local ConfigNameBox = Instance.new("TextBox")
-        ConfigNameBox.Parent = ContentFrame
-        ConfigNameBox.Size = UDim2.new(1, -10, 0, 30)
-        ConfigNameBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-        ConfigNameBox.Text = ""
-        ConfigNameBox.TextColor3 = Color3.new(1,1,1)
-        ConfigNameBox.PlaceholderText = "Enter config name"
-        ConfigNameBox.TextScaled = true
-        ConfigNameBox.Font = Enum.Font.SourceSans
-        local ConfigBoxCorner = Instance.new("UICorner")
-        ConfigBoxCorner.CornerRadius = UDim.new(0, 4)
-        ConfigBoxCorner.Parent = ConfigNameBox
-        
-        local SaveBtn = Instance.new("TextButton")
-        SaveBtn.Parent = ContentFrame
-        SaveBtn.Size = UDim2.new(1, -10, 0, 30)
-        SaveBtn.BackgroundColor3 = Color3.fromRGB(0, 162, 255)
-        SaveBtn.Text = "💾 Save Config"
-        SaveBtn.TextColor3 = Color3.new(1,1,1)
-        SaveBtn.TextScaled = true
-        SaveBtn.Font = Enum.Font.SourceSans
-        local SaveCorner = Instance.new("UICorner")
-        SaveCorner.CornerRadius = UDim.new(0, 4)
-        SaveCorner.Parent = SaveBtn
-        SaveBtn.MouseButton1Click:Connect(function()
-            local name = ConfigNameBox.Text
-            if name ~= "" then
-                SaveConfig(name)
-            end
-        end)
-        
-        local LoadBtn = Instance.new("TextButton")
-        LoadBtn.Parent = ContentFrame
-        LoadBtn.Size = UDim2.new(1, -10, 0, 30)
-        LoadBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-        LoadBtn.Text = "📂 Load Config"
-        LoadBtn.TextColor3 = Color3.new(1,1,1)
-        LoadBtn.TextScaled = true
-        LoadBtn.Font = Enum.Font.SourceSans
-        local LoadCorner = Instance.new("UICorner")
-        LoadCorner.CornerRadius = UDim.new(0, 4)
-        LoadCorner.Parent = LoadBtn
-        LoadBtn.MouseButton1Click:Connect(function()
-            local name = ConfigNameBox.Text
-            if name ~= "" then
-                LoadConfig(name)
-            end
         end)
     elseif tabData.Name == "Visuals" then
         ToggleESP()
@@ -587,4 +489,4 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
-print("Anyx.gg With Config System Loaded - Tap Blue Triangle to Open")
+print("Anyx.gg Fixed Scroll & Color Buttons - Tap Blue Triangle to Open")
